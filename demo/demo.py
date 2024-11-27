@@ -7,7 +7,7 @@ from FastGaussianPuff import GaussianPuff as GP
 
 def main():
     # set simulation parameters
-    # IMPORTANT: obs_dt must be a positive integer multiple of sim_dt, and both sim_dt and puff_dt must be integers
+    # IMPORTANT: obs_dt must be a positive integer multiple of sim_dt
     obs_dt, sim_dt, puff_dt = 60, 1, 10 # [seconds]
 
     # start and end times at minute resolution. Needs to be in the local timezone of where we're simulating
@@ -22,16 +22,19 @@ def main():
     wind_directions = 120*np.abs(np.cos(fake_times))
     wind_directions[30:60] -= 40*np.abs(np.sin(6*fake_times[30:60]))
 
+    wind_speeds = np.array(wind_speeds)
+    wind_directions = np.array(wind_directions)
+
     # number of grid points
     x_num, y_num, z_num = 51, 51, 11
 
     # grid coordinates
-    grid_coords = [0, 0, 0, 50, 50, 10] # format is (x_min, y_min, z_min, x_max, y_max, z_max) in [m]
+    grid_coords = np.array([0, 0, 0, 50, 50, 10]) # format is (x_min, y_min, z_min, x_max, y_max, z_max) in [m]
 
 
     # location and emission rate for emitting source
-    source_coordinates = [[25, 25, 5]] # format is [[x0,y0,z0]] in [m]. needs to be nested list for compatibility with multi source (coming soon)
-    emission_rate = [3] # emission rate for the single source above, [kg/hr]
+    source_coordinates =  np.array([[25, 25, 5]]) # format is [[x0,y0,z0]] in [m]. needs to be nested list for compatibility with multi source (coming soon)
+    emission_rate = np.array([3]) # emission rate for the single source above, [kg/hr]
 
     gp = GP(obs_dt, sim_dt, puff_dt,
                     start, end,

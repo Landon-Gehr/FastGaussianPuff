@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 from FastGaussianPuff import GaussianPuff as GP
 
 # set simulation parameters
-# IMPORTANT: obs_dt must be a positive integer multiple of sim_dt, and both sim_dt and puff_dt must be integers
+# IMPORTANT: obs_dt must be a positive integer multiple of sim_dt
 obs_dt, sim_dt, puff_dt = 60, 1, 1
 
 # start and end times at minute resolution. Needs to be in the local timezone of where we're simulating
@@ -20,11 +20,14 @@ wind_speeds = [3]*61
 wind_directions = 120*np.abs(np.cos(fake_times))
 wind_directions[30:60] -= 40*np.abs(np.sin(6*fake_times[30:60]))
 
+wind_speeds = np.array(wind_speeds)
+wind_directions = np.array(wind_directions)
+
 
 
 # emission source
-source_coordinates = [[0.0, 0.0, 2.5]] # format is [[x0,y0,z0]] in [m]. needs to be nested list for compatibility with multi-source emissions
-emission_rate = [3.5] # emission rate for the single source above, [kg/hr]
+source_coordinates = np.array([[0.0, 0.0, 2.5]]) # format is [[x0,y0,z0]] in [m]. needs to be nested list for compatibility with multi-source emissions
+emission_rate = np.array([3.5]) # emission rate for the single source above, [kg/hr]
 
 # sensors on the site. it is assumed that these encase the source coordinates.
 theta = np.linspace(0, 2*np.pi, 8, endpoint=False)
