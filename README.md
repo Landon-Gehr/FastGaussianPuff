@@ -1,4 +1,7 @@
 # FastGaussianPuff
+
+[![build](https://github.com/Hammerling-Research-Group/FastGaussianPuff/actions/workflows/build.yml/badge.svg)](https://github.com/Hammerling-Research-Group/FastGaussianPuff/actions/workflows/build.yml)
+
 This repository contains multiple different implementations of the Gaussian puff atmospheric dispersion model that simulates concentration timeseries given a geometry and emission parameters. The Gaussian puff model simulates a continuous emission as a series of discrete puffs. As long as puffs are emitted often enough and tracked finely enough (more on that later), this model can give reasonable results more quickly than solving an advection-diffusion equation.
 
 Specifically, the code computes the space and time-dependent concentration field
