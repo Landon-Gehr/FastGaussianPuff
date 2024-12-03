@@ -5,7 +5,7 @@ channels:
 dependencies:
   - pybind11
   - pandas
-  - numpy
+  - numpy=1.21.4
   - matplotlib
   - pytest
   - cxx-compiler
