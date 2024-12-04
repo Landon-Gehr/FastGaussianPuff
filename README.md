@@ -1,4 +1,5 @@
 # FastGaussianPuff
+*Production code the Fast Implementation of the Gaussian Puff Forward Atmospheric Model*
 
 [![build](https://github.com/Hammerling-Research-Group/FastGaussianPuff/actions/workflows/build.yml/badge.svg)](https://github.com/Hammerling-Research-Group/FastGaussianPuff/actions/workflows/build.yml)
 
