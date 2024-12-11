@@ -11,41 +11,62 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+    - name: Install Mamba
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        environment-file: environment.yml
+        cache-environment: false
+        cache-downloads: true
+        
+    - name: List environment
+      run: |
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate gp
+        micromamba list
 
-      # Install dependencies using conda
-      - name: Set up Conda environment
-        run: |
-          sudo apt-get update && sudo apt-get install -y wget
-          wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-          bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge
-          source $HOME/miniforge/bin/activate
-          conda env create -f environment.yml
-          conda activate gp
-          conda install pytest pytest-cov codecov -y
+    - name: Configure and compile the library
+      run: |
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate gp
+        mkdir build && cd build
+        cmake -DCMAKE_VERBOSE_MAKEFILE=yes -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
+        make all install
 
-      # Run tests with coverage
-      - name: Run tests and calculate coverage
-        run: |
-          source $HOME/miniforge/bin/activate
-          conda activate gp
-          pytest --cov=fast_gaussian_puff tests/
+    - name: Install via pip
+      run: |
+        pip install -vv .
+      shell: bash -el {0}
 
-      # Upload coverage report to Codecov
-      - name: Upload coverage to Codecov
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          source $HOME/miniforge/bin/activate
-          conda activate gp
-          codecov
+    - name: Verify import of C code
+      run: |
+        python -c "import FastGaussianPuff.CGaussianPuff"
+      shell: bash -el {0}
+
+    - name: Verify import of python class
+      run: |
+        pytest -sv tests/test_import.py
+        cd tests/
+        pytest -sv test_import.py
+        cd ..
+      shell: bash -el {0}
+
+    # Run tests with coverage
+    - name: Run tests and calculate coverage
+       run: |
+         source $HOME/miniforge/bin/activate
+         conda activate gp
+         pytest --cov=fast_gaussian_puff tests/
+
+    # Upload coverage report to Codecov
+    - name: Upload coverage to Codecov
+       env:
+         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+       run: |
+         source $HOME/miniforge/bin/activate
+         conda activate gp
+         codecov
