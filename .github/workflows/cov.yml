@@ -38,7 +38,7 @@ jobs:
       - name: Run tests and calculate coverage
         run: |
           source $HOME/miniforge/bin/activate
-          conda activate FastGaussianPuff
+          conda activate gp
           pytest --cov=fast_gaussian_puff tests/
 
       # Upload coverage report to Codecov
