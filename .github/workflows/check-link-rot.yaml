@@ -25,7 +25,7 @@ jobs:
 
       - name: Upload broken links report (if any)
         if: failure()
-        uses: actions/upload-artifact@c0b2b650e83b20f03a9e5759b3a21e5c0f4c9e90
+        uses: actions/upload-artifact@main
         with:
           name: broken-links-report
           path: lychee.out
