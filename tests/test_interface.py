@@ -28,7 +28,6 @@ def test_bad_list_init():
     ws = [3]*61
     wd = [200]*61
 
-    # this should still work if we pass lists instead of numpy arrays
     params["wind_speeds"] = pd.DataFrame(ws)
 
     with pytest.raises(TypeError):
