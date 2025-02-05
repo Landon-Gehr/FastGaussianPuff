@@ -26,12 +26,12 @@ def test_list_init():
 
 def test_bad_list_init():
     ws = [3]*61
-    wd = [200]*61
 
-    # this should still work if we pass lists instead of numpy arrays
-    params["wind_speeds"] = pd.DataFrame(ws)
+    test_params = params.copy()
+
+    test_params["wind_speeds"] = pd.DataFrame(ws)
 
     with pytest.raises(TypeError):
-        gp = GP(**params, **grid_params)
+        gp = GP(**test_params, **grid_params)
     with pytest.raises(TypeError):
-        sp = GP(**params, **sensor_params)
+        sp = GP(**test_params, **sensor_params)

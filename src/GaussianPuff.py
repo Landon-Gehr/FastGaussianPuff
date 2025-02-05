@@ -18,6 +18,7 @@ class GaussianPuff:
                  grid_coordinates=None,
                  nx=None, ny=None, nz=None,
                  puff_duration = 1200,
+                 skip_low_wind = False, low_wind_cutoff = -1,
                  exp_threshold_tolerance = None,
                  conversion_factor = 1e6*1.524,
                  unsafe=False, quiet=True):
@@ -67,6 +68,10 @@ class GaussianPuff:
                 for the puff stops when the plume has moved far away. In low wind speeds, however, this cutoff will
                 halt the simulation of a puff early. This may be desirable as exceedingly long (and likely unphysical)
                 plume departure times can be computed for wind speeds << 1 m/s
+            skip_low_wind (boolean), low_wind_cutoff [m/s] (float):
+                if True, the simulation will skip any time step where the wind speed is below low_wind_cutoff.
+                This is useful to avoid zero-values or situations where the wind is so slow that it'd create unreasonable predictions.
+                Default is False.
             exp_threshold_tolerance (scalar, float):
                 the tolerance used to threshold the exponentials when evaluating the Gaussian equation.
                 If, for example, exp_tol = 1e-9, the concentration at a single point for an individual time step
@@ -105,6 +110,12 @@ class GaussianPuff:
         else:
             self.exp_threshold_tolerance = exp_threshold_tolerance
 
+        if(skip_low_wind):
+            if(low_wind_cutoff <= 0):
+                raise ValueError("[FastGaussianPuff] low wind cutoff must be greater than 0")
+            self.skip_low_wind = True
+            self.low_wind_cutoff = low_wind_cutoff
+
         ns = (simulation_end-simulation_start).total_seconds()
         self.n_obs = floor(ns/obs_dt) + 1 # number of observed data points we have
 
@@ -112,7 +123,7 @@ class GaussianPuff:
                                      emission_rates, grid_coordinates, sensor_coordinates)
         wind_speeds, wind_directions, source_coordinates, emission_rates, grid_coordinates, sensor_coordinates = arrays
 
-        self._check_wind_data(wind_speeds)
+        self._check_wind_data(wind_speeds, skip_low_wind)
 
         # resample the wind data from obs_dt to the simulation resolution sim_dt
         self._interpolate_wind_data(wind_speeds, wind_directions, puff_dt, simulation_start, simulation_end)
@@ -159,6 +170,7 @@ class GaussianPuff:
                     self.wind_speeds_sim, self.wind_directions_sim,
                     source_coordinates, emission_rates,
                     conversion_factor, self.exp_threshold_tolerance,
+                    skip_low_wind, low_wind_cutoff,
                     unsafe, quiet)
         else:
             self.using_sensors = True
@@ -178,6 +190,7 @@ class GaussianPuff:
                 self.wind_speeds_sim, self.wind_directions_sim,
                 source_coordinates, emission_rates,
                 conversion_factor, self.exp_threshold_tolerance,
+                skip_low_wind, low_wind_cutoff,
                 unsafe, quiet
             )
 
@@ -243,10 +256,12 @@ class GaussianPuff:
                 casted_arrays["sensor_coordinates"])
 
 
-    def _check_wind_data(self, ws):
+    def _check_wind_data(self, ws, skip_low_wind):
+        if skip_low_wind:
+            return
+        
         if np.any(ws <= 0):
-            print("[FastGaussianPuff] ERROR: wind speed <= 0 in the input. Exiting.")
-            exit(-1)
+            raise( ValueError("[FastGaussianPuff] wind speeds must be greater than 0"))
         if np.any(ws < 1e-2):
             print("[FastGaussianPuff] WARNING: There's a wind speed < 0.01 m/s. This is likely a mistake and will cause slow performance. The simulation will continue, but results will be poor as the puff model is degenerate in low wind speeds.")
 
