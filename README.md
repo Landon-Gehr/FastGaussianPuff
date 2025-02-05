@@ -73,5 +73,14 @@ $ make all install
 ```
 It is advisable to install the library in the conda environment so that the python bindings are available. The environment variable $CONDA_PREFIX is set to the root of the conda environment.
 
-### Other notes
-- To run the tests you'll need the input data. It is currently stored on dropbox under fastGaussianPuff/test_data.
+## Danger zone
+This section contains details on special parameters that may cause erroneous output and have specific use-cases. When in doubt, re-run the model with default parameters and compare.
+
+`skip_low_wind` (bool), `low_wind_cutoff` (float, [m/s])
+- When true, skip_low_wind will cause the simulation to skip emitting puffs when the wind speed is below the low_wind_cutoff. This was added for convenience since the model is unreliable in low wind speeds (< 0.5m/s) and doesn't run if there is a wind speed of 0 m/s. 
+
+`exp_thresh_tolerance` (float. [ppm])
+- The tolerance for the thresholding algorithm. The model will skip evaluation of any cell that will produce a result less than this. Note that this is not one-to-one with the smallest concentration you'll see in the output due to how output data is resampled in time. As such, this should be set conservatively. Default: 1e-7
+
+`unsafe` (bool)
+- Turning this to true enables unsafe math operations that approximate evaluation of expensive functions and uses a tighter threshold. Expect to see between a 1.5-2x speed up, but the output may vary from what is expected. When in doubt, rerun the model with this off and compare.
