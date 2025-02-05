@@ -112,8 +112,7 @@ class GaussianPuff:
 
         if(skip_low_wind):
             if(low_wind_cutoff <= 0):
-                print("[fGP] Error: low wind cutoff must be greater than 0")
-                exit(-1)
+                raise ValueError("[FastGaussianPuff] low wind cutoff must be greater than 0")
             self.skip_low_wind = True
             self.low_wind_cutoff = low_wind_cutoff
 
@@ -124,7 +123,7 @@ class GaussianPuff:
                                      emission_rates, grid_coordinates, sensor_coordinates)
         wind_speeds, wind_directions, source_coordinates, emission_rates, grid_coordinates, sensor_coordinates = arrays
 
-        self._check_wind_data(wind_speeds)
+        self._check_wind_data(wind_speeds, skip_low_wind)
 
         # resample the wind data from obs_dt to the simulation resolution sim_dt
         self._interpolate_wind_data(wind_speeds, wind_directions, puff_dt, simulation_start, simulation_end)
@@ -257,10 +256,12 @@ class GaussianPuff:
                 casted_arrays["sensor_coordinates"])
 
 
-    def _check_wind_data(self, ws):
+    def _check_wind_data(self, ws, skip_low_wind):
+        if skip_low_wind:
+            return
+        
         if np.any(ws <= 0):
-            print("[FastGaussianPuff] ERROR: wind speed <= 0 in the input. Exiting.")
-            exit(-1)
+            raise( ValueError("[FastGaussianPuff] wind speeds must be greater than 0"))
         if np.any(ws < 1e-2):
             print("[FastGaussianPuff] WARNING: There's a wind speed < 0.01 m/s. This is likely a mistake and will cause slow performance. The simulation will continue, but results will be poor as the puff model is degenerate in low wind speeds.")
 
