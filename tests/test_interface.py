@@ -35,3 +35,26 @@ def test_bad_list_init():
         gp = GP(**test_params, **grid_params)
     with pytest.raises(TypeError):
         sp = GP(**test_params, **sensor_params)
+
+
+def test_source_coordinate_formats():
+    test_params = params.copy()
+
+    # test with a single source coordinate
+    test_params["source_coordinates"] = [[25, 25, 5]]
+    gp = GP(**test_params, **grid_params)
+    gp.simulate()
+    ans = np.linalg.norm(gp.ch4_obs)
+    assert ans > 0
+    # print(np.linalg.norm(gp.ch4_obs))
+
+    # test with a single source coordinate as a list
+    test_params["source_coordinates"] = [25, 25, 5]
+    gp = GP(**test_params, **grid_params)
+    gp.simulate()
+    assert np.linalg.norm(gp.ch4_obs) == ans
+
+    # test with multiple source coordinates
+    test_params["source_coordinates"] = [[25, 25, 5], [30, 30, 5]]
+    with pytest.raises(NotImplementedError):
+        gp = GP(**test_params, **grid_params)
