@@ -47,6 +47,8 @@ There are a few restrictions imposed on the time parameters.
 To simulate below the resolution of `obs_dt`, wind data is interpolated to resolution `puff_dt` so that each puff may have a separate wind direction and speed.
 
 ## Installation instructions
+**Currently, this install process will not work on Windows.**
+
 We highly recommend using a [conda](https://docs.conda.io/en/latest/) environment. You can create the environment with
 
 ```shell
