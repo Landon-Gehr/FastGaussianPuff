@@ -51,6 +51,9 @@ protected:
     double conversion_factor;
     double exp_tol;
 
+    bool skip_low_wind;
+    float low_wind_thresh;
+
     bool quiet;
 
     const double one_over_two_pi_three_halves = 1/std::pow(2*M_PI, 1.5);
@@ -81,12 +84,13 @@ public:
                     Vector wind_speeds, Vector wind_directions,
                     Matrix source_coordinates, Vector emission_strengths,
                     double conversion_factor, double exp_tol,
+                    bool skip_low_wind, float low_wind_thresh,
                     bool unsafe, bool quiet)
 
     : X(X), Y(Y), Z(Z), N_points(N), 
     sim_dt(sim_dt), puff_dt(puff_dt), puff_duration(puff_duration), wind_speeds(wind_speeds), wind_directions(wind_directions),
     source_coordinates(source_coordinates), emission_strengths(emission_strengths),
-    conversion_factor(conversion_factor), exp_tol(exp_tol), quiet(quiet) {
+    conversion_factor(conversion_factor), exp_tol(exp_tol), quiet(quiet), skip_low_wind(skip_low_wind), low_wind_thresh(low_wind_thresh){
 
         if(unsafe){
             if (!quiet) std::cout << "RUNNING IN UNSAFE MODE\n";
@@ -142,6 +146,8 @@ public:
             if(p*puff_to_sim_ratio + puff_lifetime >= ch4.rows()) puff_lifetime = ch4.rows()-p*puff_to_sim_ratio;
 
             double theta = windDirectionToAngle(wind_directions[p]);
+
+            if(skip_low_wind && wind_speeds[p] < low_wind_thresh) continue;
 
             // computes concentration timeseries for this puff
             concentrationPerPuff(emission_per_puff, theta, wind_speeds[p], 
@@ -692,6 +698,7 @@ public:
                     Vector wind_speeds, Vector wind_directions,
                     Matrix source_coordinates, Vector emission_strengths,
                     double conversion_factor, double exp_tol,
+                    bool skip_low_wind, float low_wind_thresh,
                     bool unsafe, bool quiet)
 
         : CGaussianPuff(X, Y, Z, nx*ny*nz,
@@ -700,6 +707,7 @@ public:
                         wind_speeds, wind_directions,
                         source_coordinates, emission_strengths,
                         conversion_factor, exp_tol,
+                        skip_low_wind, low_wind_thresh,
                         unsafe, quiet), 
 
         nx(nx), ny(ny), nz(nz)
@@ -891,6 +899,7 @@ public:
                     Vector wind_speeds, Vector wind_directions,
                     Matrix source_coordinates, Vector emission_strengths,
                     double conversion_factor, double exp_tol,
+                    bool skip_low_wind, float low_wind_thresh,
                     bool unsafe, bool quiet) :
         CGaussianPuff(X, Y, Z, N_sensors,
                         sim_dt, puff_dt, puff_duration,
@@ -898,6 +907,7 @@ public:
                         wind_speeds, wind_directions,
                         source_coordinates, emission_strengths,
                         conversion_factor, exp_tol,
+                        skip_low_wind, low_wind_thresh,
                         unsafe, quiet)
     {
 
@@ -924,12 +934,12 @@ PYBIND11_MODULE(CGaussianPuff, m) {
     py::class_<GridGaussianPuff>(m, "GridGaussianPuff")
     .def(py::init<Vector, Vector, Vector, int, int, int, double, double, double,
                     TimePoint, TimePoint, 
-                    Vector, Vector, Matrix, Vector, double, double, bool, bool>())
+                    Vector, Vector, Matrix, Vector, double, double, bool, double, bool, bool>())
     .def("simulate", &CGaussianPuff::simulate);
 
     py::class_<SensorGaussianPuff>(m, "SensorGaussianPuff")
     .def(py::init<Vector, Vector, Vector, int, double, double, double,
                     TimePoint, TimePoint, 
-                    Vector, Vector, Matrix, Vector, double, double, bool, bool>())
+                    Vector, Vector, Matrix, Vector, double, double, bool, double, bool, bool>())
     .def("simulate", &CGaussianPuff::simulate);
 }
