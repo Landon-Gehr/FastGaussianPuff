@@ -22,7 +22,7 @@ class GaussianPuff:
                  exp_threshold_tolerance = None,
                  conversion_factor = 1e6*1.524,
                  unsafe=False, quiet=True):
-        
+
         '''
         Inputs: 
             obs_dt [s] (scalar, double): 
@@ -132,6 +132,8 @@ class GaussianPuff:
         self.time_stamps_sim = pd.date_range(self.sim_start, self.sim_end, freq=str(self.sim_dt)+"s")
         self.n_sim = len(self.time_stamps_sim) # number of simulation time steps
 
+        source_coordinates = self._parse_source_coords(source_coordinates)
+
         if puff_duration == None:
             puff_duration = self.n_sim # ensures we don't overflow time index
 
@@ -152,7 +154,7 @@ class GaussianPuff:
             z_max = grid_coordinates[5]
 
             x, y, z = np.linspace(x_min, x_max, self.nx), np.linspace(y_min, y_max, self.ny), np.linspace(z_min, z_max, self.nz)
-            
+
             self.X, self.Y, self.Z = np.meshgrid(x, y, z) # x-y-z grid across site in utm
             self.grid_dims = np.shape(self.X)
 
@@ -194,9 +196,32 @@ class GaussianPuff:
                 unsafe, quiet
             )
 
-
         # initialize the final simulated concentration array
         self.ch4_sim = np.zeros((self.n_sim, self.N_points)) # simulation in sim_dt resolution, flattened
+
+    def _parse_source_coords(self, source_coordinates):
+        size = np.shape(source_coordinates)
+        if len(size) == 1:
+            if size[0] == 3:
+                source_coordinates = np.array(
+                    [source_coordinates]
+                )  # now a nested array- C++ code expects this format
+            else:
+                print(
+                    "[fGP] Error: source_coordinates must be a 3-element array, e.g. [x0, y0, z0]."
+                )
+                exit(-1)
+        else:
+            if size[0] == 1 and size[1] == 3:
+                return source_coordinates
+            elif size[0] > 1 and size[1] == 3:
+                raise (
+                    NotImplementedError(
+                        "[fGP] Error: Multi-source currently isn't implemented. Only provide coordinates for a single source, e.g. [x0, y0, z0] or [[x0, y0, z0]]."
+                    )
+                )
+
+        return source_coordinates
 
     def _check_timestep_parameters(self):
 
@@ -236,9 +261,9 @@ class GaussianPuff:
             "grid_coordinates": grid_coordinates,
             "sensor_coordinates": sensor_coordinates,
         }
-        
+
         casted_arrays = {}
-        
+
         for name, var in variables.items():
             if var is not None:
                 try:
@@ -255,11 +280,10 @@ class GaussianPuff:
                 casted_arrays["grid_coordinates"], 
                 casted_arrays["sensor_coordinates"])
 
-
     def _check_wind_data(self, ws, skip_low_wind):
         if skip_low_wind:
             return
-        
+
         if np.any(ws <= 0):
             raise( ValueError("[FastGaussianPuff] wind speeds must be greater than 0"))
         if np.any(ws < 1e-2):
@@ -295,12 +319,11 @@ class GaussianPuff:
                                                     wind_directions,
                                                     direction = 'ws_wd_2_u_v')
 
-
         # resamples wind data to sim_dt resolution
         wind_df = pd.DataFrame(data = {'wind_u' : wind_u,
                                     'wind_v' : wind_v}, 
                             index = time_stamps)
-        
+
         wind_df = wind_df.resample(str(puff_dt)+'s').interpolate()
         wind_u = wind_df['wind_u'].to_list()
         wind_v = wind_df['wind_v'].to_list()
@@ -347,14 +370,14 @@ class GaussianPuff:
             output_1, output_2 = ws, wd
         else:
             raise NotImplementedError(">>>>> wind vector conversion direction")
-        
+
         return output_1, output_2
 
     def _model_info_print(self):
         '''
         Print the parameters used in this model
         '''
-        
+
         print("\n************************************************************")
         print("****************     PUFF SIMULATION START     *************")
         print("************************************************************")
@@ -367,7 +390,7 @@ class GaussianPuff:
             print("         Running in sensor mode")
         else:
             print(f"         Running in grid mode with grid dimensions {self.grid_dims}")
-        
+
     def simulate(self):
         '''
         Main code for simulation
@@ -382,15 +405,14 @@ class GaussianPuff:
 
         # resample results to the output_dt-resolution
         self.ch4_obs = self._resample_simulation(self.ch4_sim, self.out_dt)
-        
-        
+
         if self.quiet == False:
             print("\n************************************************************")
             print("*****************    PUFF SIMULATION END     ***************")
             print("************************************************************")
-        
+
         return self.ch4_obs
-    
+
     def _resample_simulation(self, c_matrix, resample_dt, mode = 'mean'):
         '''
         Resample the simulation results 
@@ -414,9 +436,9 @@ class GaussianPuff:
             df = df.resample(str(resample_dt)+'s').asfreq()
         else:
             raise NotImplementedError(">>>>> sim to obs resampling mode") 
-        
+
         c_matrix_res = df.to_numpy()
 
         self.n_out = np.shape(c_matrix_res)[0]
-        
+
         return c_matrix_res
