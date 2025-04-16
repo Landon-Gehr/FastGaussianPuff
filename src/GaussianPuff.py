@@ -50,8 +50,10 @@ class GaussianPuff:
                 resolution to resample the concentration to at the end of the sismulation. By default,
                 resamples to the resolution of the wind observations obs_dt.
             simulation_start, simulation_end (pd.DateTime values)
-                start and end times for the emission to be simulated.
-            time_zone ()
+                start and end times for the emission to be simulated. Must be timezone-aware.
+            time_zone (timezone string):
+                timezone to use for the simulation. This should be a string that can be parsed by
+                the zoneinfo module, e.g. "America/New_York".
             source_coordinates (array, size=(n_sources, 3)) [m]:
                 holds source coordinate (x0,y0,z0) in meters for each source.
             emission_rates: (array, length=n_sources) [kg/hr]:
