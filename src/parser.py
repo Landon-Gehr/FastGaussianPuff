@@ -34,6 +34,8 @@ class PuffParser:
         self.sim_dt = float(self.options["sim_dt"])
         self.puff_dt = float(self.options["puff_dt"])
 
+        self.tz = self.options["time_zone"]
+
     def run_exp(self):
         start_times = self.exp_file["start_time"].values
         end_times = self.exp_file["end_time"].values
@@ -61,10 +63,6 @@ class PuffParser:
             ]
             wd = wd["wind_dir"].values
 
-            # C code expects no timezone
-            start_time = start_time.tz_localize(None)
-            end_time = end_time.tz_localize(None)
-
             exp_sources = ast.literal_eval(source_names[i])
             rate = ast.literal_eval(rates[i])
 
@@ -82,6 +80,7 @@ class PuffParser:
                     self.puff_dt,
                     start_time,
                     end_time,
+                    self.tz,
                     coords,
                     [rate[j]],
                     ws,
