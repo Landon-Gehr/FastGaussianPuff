@@ -110,8 +110,8 @@ class GaussianPuff:
 
         self._check_timestep_parameters()
 
-        self.sim_start = self.ensure_utc(simulation_start)
-        self.sim_end = self.ensure_utc(simulation_end)
+        self.sim_start = self._ensure_utc(simulation_start)
+        self.sim_end = self._ensure_utc(simulation_end)
 
         try:
             time_zone = ZoneInfo(time_zone)
@@ -333,7 +333,7 @@ class GaussianPuff:
         if np.any(ws < 1e-2):
             print("[FastGaussianPuff] WARNING: There's a wind speed < 0.01 m/s. This is likely a mistake and will cause slow performance. The simulation will continue, but results will be poor as the puff model is degenerate in low wind speeds.")
 
-    def ensure_utc(dt):
+    def _ensure_utc(self, dt):
         """
         Ensures the input datetime is timezone-aware and in UTC.
         Converts to UTC if it's in a different timezone.
