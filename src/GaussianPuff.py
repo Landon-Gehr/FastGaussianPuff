@@ -144,7 +144,7 @@ class GaussianPuff:
             self.skip_low_wind = True
             self.low_wind_cutoff = low_wind_cutoff
 
-        ns = (simulation_end-simulation_start).total_seconds()
+        ns = (self.sim_end-self.sim_start).total_seconds()
         self.n_obs = floor(ns/obs_dt) + 1 # number of observed data points we have
 
         arrays = self._check_array_dtypes(wind_speeds, wind_directions, source_coordinates, 
@@ -154,7 +154,7 @@ class GaussianPuff:
         self._check_wind_data(wind_speeds, skip_low_wind)
 
         # resample the wind data from obs_dt to the simulation resolution sim_dt
-        self._interpolate_wind_data(wind_speeds, wind_directions, puff_dt, simulation_start, simulation_end)
+        self._interpolate_wind_data(wind_speeds, wind_directions, puff_dt, self.sim_start, self.sim_end)
 
         # save timeseries of simulation resolution so we can resample back to observation later
         self.time_stamps_sim = pd.date_range(self.sim_start, self.sim_end, freq=str(self.sim_dt)+"s")
