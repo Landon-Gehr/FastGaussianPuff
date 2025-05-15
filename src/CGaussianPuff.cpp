@@ -150,6 +150,8 @@ public:
           double theta = windDirectionToAngle(wind_directions[p]);
 
           // computes concentration timeseries for this puff
+          sigma_y_file << p*puff_dt << " ";
+          sigma_z_file << p*puff_dt << " ";
           concentrationPerPuff(
               emission_per_puff, theta, wind_speeds[p], hours[p],
               ch4.middleRows(p * puff_to_sim_ratio, puff_lifetime));
