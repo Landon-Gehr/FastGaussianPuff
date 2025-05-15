@@ -47,7 +47,7 @@ There are a few restrictions imposed on the time parameters.
 To simulate below the resolution of `obs_dt`, wind data is interpolated to resolution `puff_dt` so that each puff may have a separate wind direction and speed.
 
 ### Timezones
-The module requires the input timestamps to be time zone-aware, and the input time zone string should correspond to the location of the site to be simulated. For example, simulating a site in Colorado could use `time_zone=America/Denver`. The start/end times can be in any time zone but will get converted to the specified time for simulation. For a list of all timezones, use the following:
+The module requires the input timestamps to be time zone-aware, and the input time zone string should correspond to the location of the site to be simulated. For example, simulating a site in Colorado could use `time_zone="America/Denver"`. The start/end times can be in any time zone but will get converted to the specified time for simulation (e.g. start/end could be input in UTC and will get converted the America/Denver). For a list of all timezones, use the following:
 ```python
 import zoneinfo
 zoneinfo.available_timezones()
