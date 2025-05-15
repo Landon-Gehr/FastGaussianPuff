@@ -16,6 +16,9 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <fstream>
+#include <string>
+
 typedef Eigen::Vector2d Vector2d;
 typedef Eigen::VectorXd Vector;
 typedef Eigen::Ref<Vector> RefVector;
@@ -32,6 +35,9 @@ protected:
     const Vector X, Y, Z;
     Vector X_centered, Y_centered;
     int N_points;
+
+    std::ofstream sigma_y_file;
+    std::ofstream sigma_z_file;
 
     double sim_dt, puff_dt;
     double puff_duration;
@@ -105,6 +111,9 @@ public:
     } else {
       this->exp = [](double x) { return std::exp(x); };
     }
+
+    sigma_y_file.open("sigma_y.txt");
+    sigma_z_file.open("sigma_z.txt");
   }
 
     /* Simulation time loop
@@ -150,6 +159,8 @@ public:
             report_ratio += 0.1;
           }
         }
+        sigma_y_file.close();
+        sigma_z_file.close();
     }
 
 private:
@@ -187,6 +198,16 @@ private:
         }
 
         getSigmaCoefficients(sigma_y, sigma_z, stability_class, downwind_dists);
+
+        for (auto &s : sigma_y) {
+          sigma_y_file << s << " ";
+        }
+        sigma_y_file << "\n";
+
+        for (auto &s : sigma_z) {
+          sigma_z_file << s << " ";
+        }
+        sigma_z_file << "\n";
     }
 
     Vector2d calculateExitLocation(){
