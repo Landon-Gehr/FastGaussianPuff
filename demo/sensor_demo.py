@@ -8,7 +8,10 @@ from FastGaussianPuff import GaussianPuff as GP
 # IMPORTANT: obs_dt must be a positive integer multiple of sim_dt
 obs_dt, sim_dt, puff_dt = 60, 1, 1
 
-# start and end times- needs to be timezone-aware.
+# start and end times need to be timezone-aware.
+# start/end are the times you want to simulate between. time_zone is the location you want to simulate in.
+# you can input start and end times in any timezone and they'll get converted to the time_zone you specify.
+# (e.g. input start/end in UTC and set time_zone to "America/Denver" to simulate in mountain time)
 start = pd.to_datetime("2022-01-01 12:00:00-06:00")
 end = pd.to_datetime("2022-01-01 13:00:00-06:00")
 time_zone = "America/Denver"  # alternative: "US/Mountain"
