@@ -890,7 +890,7 @@ public:
                       source_coordinates, emission_strengths, conversion_factor,
                       exp_tol, skip_low_wind, low_wind_thresh, unsafe, quiet) {
 
-    std::vector<int> inds(N_points);
+    std::vector<int> inds(N_sensors);
     for (int i = 0; i < N_sensors; i++) {
       inds[i] = i;
     }

@@ -223,9 +223,6 @@ class GaussianPuff:
             spatial_grid = (self.X, self.Y, self.Z, self.N_points)
             dts = (sim_dt, puff_dt, puff_duration)
             wind = (self.wind_speeds_sim, self.wind_directions_sim)
-            spatial_grid = (self.X, self.Y, self.Z, self.N_points)
-            dts = (sim_dt, puff_dt, puff_duration)
-            wind = (self.wind_speeds_sim, self.wind_directions_sim)
             self.GPC = fGP.SensorGaussianPuff(
                 *spatial_grid,
                 *dts,
