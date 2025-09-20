@@ -1,9 +1,13 @@
+// updating the module: conda env update -f environment.yml && conda activate gp && rm -rf build/ && pip install .
+
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <time.h>
 #include <chrono>
 #include <functional>
+#include <string>
+#include <map>
 
 #include <algorithm>
 
@@ -38,6 +42,8 @@ protected:
     int n_puffs;
 
     VectorXi hours;
+    Vector daylight_times;
+    int step_counter = 0;
 
     const Vector wind_speeds, wind_directions;
 
@@ -58,11 +64,29 @@ protected:
     bool skip_low_wind;
     float low_wind_thresh;
 
-    bool quiet;
+    bool quiet = true;
+
+    std::vector<double> lowwind_coefs;
 
     const double one_over_two_pi_three_halves = 1/std::pow(2*M_PI, 1.5);
     double cosine; // store value of cosine/sine so we don't have to evaluate it across different functions
     double sine;
+
+    std::map<double,int> coef_dists_map = {{0.1, 0}, {0.15, 1}, {0.2, 2}, {0.25, 3}, {0.3, 4}, {0.4, 5}, {0.5, 6}, {0.7, 7}, {1, 8}, {2, 9}, {3, 10}, {3.11, 11}, {4, 12}, {7, 13}, {10, 14}, {15, 15}, {20, 16}, {30, 17}, {40, 18}, {60, 19}, {__INT_MAX__, 20}};
+    //stability classes of 'A' and 'G' do not define a value for a,b above x>3.11, define a,b to be -1 arbitrarly, must check on them before use of sigma results will be very low
+    std::map<char,std::vector<std::vector<double>>> coefs_map = {
+        {'A',{{122.8,0.9447,24.167,2.5334},{158.08,1.0542,24.167,2.5334},{170.22,1.0932,24.167,2.5334},{179.52,1.1262,24.167,2.5334},{217.41,1.2644,24.167,2.5334},{258.89,1.4094,24.167,2.5334},{346.75,1.7283,24.167,2.5334},{453.85,2.1166,24.167,2.5334},{453.85,2.1166,24.167,2.5334},{453.85,2.1166,24.167,2.5334},{453.85,2.1166,24.167,2.5334},{453.85,2.1166,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334},{-1.0,-1.0,24.167,2.5334}}},
+        {'G',{{106.7365,0.93834,21.25,2.1715},{124.3765,0.99309,21.25,2.1715},{130.4465,1.01259,21.25,2.1715},{139.00150000000002,1.05476,21.25,2.1715},{157.9465,1.12386,21.25,2.1715},{178.6865,1.19636,21.25,2.1715},{228.025,1.4127,21.25,2.1715},{281.575,1.60685,21.25,2.1715},{281.575,1.60685,21.25,2.1715},{281.575,1.60685,21.25,2.1715},{281.575,1.60685,21.25,2.1715},{281.575,1.60685,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715},{-1.0,-1.0,21.25,2.1715}}},
+        {'B',{{90.673,0.93198,18.333,1.8096},{90.673,0.93198,18.333,1.8096},{90.673,0.93198,18.333,1.8096},{98.483,0.98332,18.333,1.8096},{98.483,0.98332,18.333,1.8096},{98.483,0.98332,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096},{109.3,1.0971,18.333,1.8096}}},
+        {'H',{{75.907,0.923315,15.4165,1.44765},{75.907,0.923315,15.4165,1.44765},{75.907,0.923315,15.4165,1.44765},{79.812,0.948985,15.4165,1.44765},{79.812,0.948985,15.4165,1.44765},{79.812,0.948985,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765},{85.2205,1.005875,15.4165,1.44765}}},
+        {'C',{{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857},{61.141,0.91465,12.5,1.0857}}},
+        {'I',{{47.8,0.892195,10.4165,0.90476},{47.8,0.892195,10.4165,0.90476},{47.8,0.892195,10.4165,0.90476},{47.8,0.892195,10.4165,0.90476},{47.8,0.892195,10.4165,0.90476},{46.617,0.862655,10.4165,0.90476},{46.617,0.862655,10.4165,0.90476},{46.617,0.862655,10.4165,0.90476},{46.617,0.862655,10.4165,0.90476},{46.617,0.7793399999999999,10.4165,0.90476},{46.617,0.7793399999999999,10.4165,0.90476},{47.3225,0.759755,10.4165,0.90476},{47.3225,0.759755,10.4165,0.90476},{47.3225,0.759755,10.4165,0.90476},{47.3225,0.759755,10.4165,0.90476},{48.8955,0.74027,10.4165,0.90476},{48.8955,0.74027,10.4165,0.90476},{48.8955,0.74027,10.4165,0.90476},{52.597,0.71322,10.4165,0.90476},{52.597,0.71322,10.4165,0.90476},{52.597,0.71322,10.4165,0.90476}}},
+        {'D',{{34.459,0.86974,8.333,0.72382},{34.459,0.86974,8.333,0.72382},{34.459,0.86974,8.333,0.72382},{34.459,0.86974,8.333,0.72382},{34.459,0.86974,8.333,0.72382},{32.093,0.81066,8.333,0.72382},{32.093,0.81066,8.333,0.72382},{32.093,0.81066,8.333,0.72382},{32.093,0.81066,8.333,0.72382},{32.093,0.64403,8.333,0.72382},{32.093,0.64403,8.333,0.72382},{33.504,0.60486,8.333,0.72382},{33.504,0.60486,8.333,0.72382},{33.504,0.60486,8.333,0.72382},{33.504,0.60486,8.333,0.72382},{36.65,0.56589,8.333,0.72382},{36.65,0.56589,8.333,0.72382},{36.65,0.56589,8.333,0.72382},{44.053,0.51179,8.333,0.72382},{44.053,0.51179,8.333,0.72382},{44.053,0.51179,8.333,0.72382}}},
+        {'J',{{29.359500000000004,0.85317,7.2915,0.633345},{28.895000000000003,0.8446499999999999,7.2915,0.633345},{28.895000000000003,0.8446499999999999,7.2915,0.633345},{28.895000000000003,0.8446499999999999,7.2915,0.633345},{28.895000000000003,0.8446499999999999,7.2915,0.633345},{26.8605,0.78363,7.2915,0.633345},{26.8605,0.78363,7.2915,0.633345},{26.8605,0.78363,7.2915,0.633345},{26.8605,0.78363,7.2915,0.633345},{26.8605,0.6374,7.2915,0.633345},{27.3135,0.607785,7.2915,0.633345},{28.019,0.5882000000000001,7.2915,0.633345},{28.019,0.5882000000000001,7.2915,0.633345},{29.1035,0.5550649999999999,7.2915,0.633345},{29.1035,0.5550649999999999,7.2915,0.633345},{31.81,0.51381,7.2915,0.633345},{31.81,0.51381,7.2915,0.633345},{36.035,0.47102,7.2915,0.633345},{39.7365,0.44397,7.2915,0.633345},{45.8355,0.4038549999999999,7.2915,0.633345},{45.8355,0.4038549999999999,7.2915,0.633345}}},
+        {'E',{{24.26,0.8366,6.25,0.54287},{23.331,0.81956,6.25,0.54287},{23.331,0.81956,6.25,0.54287},{23.331,0.81956,6.25,0.54287},{23.331,0.81956,6.25,0.54287},{21.628,0.7566,6.25,0.54287},{21.628,0.7566,6.25,0.54287},{21.628,0.7566,6.25,0.54287},{21.628,0.7566,6.25,0.54287},{21.628,0.63077,6.25,0.54287},{22.534,0.57154,6.25,0.54287},{22.534,0.57154,6.25,0.54287},{22.534,0.57154,6.25,0.54287},{24.703,0.50527,6.25,0.54287},{24.703,0.50527,6.25,0.54287},{26.97,0.46173,6.25,0.54287},{26.97,0.46173,6.25,0.54287},{35.42,0.37615,6.25,0.54287},{35.42,0.37615,6.25,0.54287},{47.618,0.29592,6.25,0.54287},{47.618,0.29592,6.25,0.54287}}},
+        {'K',{{19.7345,0.82609,5.208349999999999,0.4523899999999999},{19.27,0.8175699999999999,5.208349999999999,0.4523899999999999},{19.27,0.8175699999999999,5.208349999999999,0.4523899999999999},{18.894,0.8018149999999999,5.208349999999999,0.4523899999999999},{18.894,0.8018149999999999,5.208349999999999,0.4523899999999999},{18.0425,0.770335,5.208349999999999,0.4523899999999999},{18.0425,0.770335,5.208349999999999,0.4523899999999999},{18.0425,0.770335,5.208349999999999,0.4523899999999999},{17.7905,0.7206250000000001,5.208349999999999,0.4523899999999999},{17.7905,0.6315200000000001,5.208349999999999,0.4523899999999999},{18.6785,0.558285,5.208349999999999,0.4523899999999999},{19.3605,0.51822,5.208349999999999,0.4523899999999999},{19.3605,0.51822,5.208349999999999,0.4523899999999999},{20.445,0.485085,5.208349999999999,0.4523899999999999},{21.2695,0.4601699999999999,5.208349999999999,0.4523899999999999},{22.403,0.4384,5.208349999999999,0.4523899999999999},{24.8105,0.39427,5.208349999999999,0.4523899999999999},{29.0355,0.35148,5.208349999999999,0.4523899999999999},{31.247,0.3252549999999999,5.208349999999999,0.4523899999999999},{37.346,0.28514,5.208349999999999,0.4523899999999999},{37.346,0.28514,5.208349999999999,0.4523899999999999}}},
+        {'F',{{15.209,0.81558,4.1667,0.36191},{15.209,0.81558,4.1667,0.36191},{15.209,0.81558,4.1667,0.36191},{14.457,0.78407,4.1667,0.36191},{14.457,0.78407,4.1667,0.36191},{14.457,0.78407,4.1667,0.36191},{14.457,0.78407,4.1667,0.36191},{14.457,0.78407,4.1667,0.36191},{13.953,0.68465,4.1667,0.36191},{13.953,0.63227,4.1667,0.36191},{14.823,0.54503,4.1667,0.36191},{16.187,0.4649,4.1667,0.36191},{16.187,0.4649,4.1667,0.36191},{16.187,0.4649,4.1667,0.36191},{17.836,0.41507,4.1667,0.36191},{17.836,0.41507,4.1667,0.36191},{22.651,0.32681,4.1667,0.36191},{22.651,0.32681,4.1667,0.36191},{27.074,0.27436,4.1667,0.36191},{27.074,0.27436,4.1667,0.36191},{27.074,0.27436,4.1667,0.36191}}}
+    };
 
 public:
     /* Constructor.
@@ -87,7 +111,7 @@ public:
                 VectorXi hours, Vector wind_speeds, Vector wind_directions,
                 Matrix source_coordinates, Vector emission_strengths,
                 double conversion_factor, double exp_tol, bool skip_low_wind,
-                float low_wind_thresh, bool unsafe, bool quiet)
+                float low_wind_thresh, bool unsafe, bool quiet, Vector daylight_times, std::vector<double> lowwind_coefs)
 
       : X(X), Y(Y), Z(Z), N_points(N), sim_dt(sim_dt), puff_dt(puff_dt),
         puff_duration(puff_duration), n_puffs(n_puffs), hours(hours),
@@ -96,8 +120,9 @@ public:
         emission_strengths(emission_strengths),
         conversion_factor(conversion_factor), exp_tol(exp_tol),
         skip_low_wind(skip_low_wind), low_wind_thresh(low_wind_thresh),
-        quiet(quiet) {
+        quiet(quiet), daylight_times(daylight_times), lowwind_coefs(lowwind_coefs) {
 
+        
     if (unsafe) {
       if (!quiet)
         std::cout << "RUNNING IN UNSAFE MODE\n";
@@ -105,7 +130,8 @@ public:
     } else {
       this->exp = [](double x) { return std::exp(x); };
     }
-  }
+
+}
 
     /* Simulation time loop
     Inputs:
@@ -360,6 +386,7 @@ private:
         Vector2d distance = (grid_corner-box_corner).cwiseAbs();
         invRayDir = invRayDir.cwiseAbs();
         double travelDistance = (distance.array()*invRayDir.array()).minCoeff();
+
         double travelTime = travelDistance/ws;
 
         return travelTime;
@@ -423,11 +450,15 @@ private:
         stability_class: character A-F representing a Pasquill stability class
             note: multiple classes can be returned. In this case, they get averaged when computing dispersion coefficients.
     */
-    std::vector<char> stabilityClassifier(double wind_speed, int hour, int day_start=7, int day_end=18) {
 
-        bool is_day = (hour >= day_start) && (hour <= day_end);
+
+    std::vector<char> stabilityClassifier(double wind_speed, int hour) {
+
+        bool is_day = daylight_times[step_counter];
+        step_counter++;
+        // bool is_day = (hour >= 7) && (hour <= 18);
         if (wind_speed < 2) {
-            return is_day ? std::vector<char>{'A', 'B'} : std::vector<char>{'E', 'F'};
+            return is_day ? std::vector<char>{'A', 'B'} : std::vector<char>{'K'};
         } else if (wind_speed < 3) {
             return is_day ? std::vector<char>{'B'} : std::vector<char>{'E', 'F'};
         } else if (wind_speed < 5) {
@@ -452,7 +483,6 @@ private:
         None, but sigma_y and sigma_z are filled with the dispersion coefficients.
     */
     void getSigmaCoefficients(std::vector<double>& sigma_y, std::vector<double>& sigma_z, std::vector<char> stability_class, std::vector<double>& downwind_dists){
-
         int n_stab = stability_class.size();
 
         for(int i = 0; i < downwind_dists.size(); i++){
@@ -471,146 +501,29 @@ private:
             if (x <= 0) {
                 sigma_y[i] = -1;
                 sigma_z[i] = -1;
-                break; // don't need to average if upwind
-            } else {
-                if (stab == 'A') {
-                    if (x < 0.1) {
-                        a = 122.800;
-                        b = 0.94470;
-                    } else if (x < 0.15) {
-                        a = 158.080;
-                        b = 1.05420;
-                    } else if (x < 0.20) {
-                        a = 170.220;
-                        b = 1.09320;
-                    } else if (x < 0.25) {
-                        a = 179.520;
-                        b = 1.12620;
-                    } else if (x < 0.30) {
-                        a = 217.410;
-                        b = 1.26440;
-                    } else if (x < 0.40) {
-                        a = 258.890;
-                        b = 1.40940;
-                    } else if (x < 0.50) {
-                        a = 346.750;
-                        b = 1.72830;
-                    } else if (x < 3.11) {
-                        a = 453.850;
-                        b = 2.11660;
-                    } else {
-                        flag = 1;
+                break;
+                
+            } else if ((stab == 'K') && (x < 0.1) && (lowwind_coefs.size() > 0)) {
+                a = lowwind_coefs[0];
+                b = lowwind_coefs[1];
+                c = lowwind_coefs[2];
+                d = lowwind_coefs[3];
+
+            }else {
+                for (const auto& pair : coef_dists_map){
+                    if (x < pair.first){
+                        a = coefs_map[stab][pair.second][0];
+                        b = coefs_map[stab][pair.second][1];
+                        c = coefs_map[stab][pair.second][2];
+                        d = coefs_map[stab][pair.second][3];
+                        break;
                     }
-                    c = 24.1670;
-                    d = 2.5334;
-                } else if (stab == 'B') {
-                    if (x < 0.2) {
-                        a = 90.673;
-                        b = 0.93198;
-                    } else if (x < 0.4) {
-                        a = 98.483;
-                        b = 0.98332;
-                    } else {
-                        a = 109.300;
-                        b = 1.09710;
-                    }
-                    c = 18.3330;
-                    d = 1.8096;
-                } else if (stab == 'C') {
-                    a = 61.141;
-                    b = 0.91465;
-                    c = 12.5000;
-                    d = 1.0857;
-                } else if (stab == 'D') {
-                    if (x < 0.3) {
-                        a = 34.459;
-                        b = 0.86974;
-                    } else if (x < 1) {
-                        a = 32.093;
-                        b = 0.81066;
-                    } else if (x < 3) {
-                        a = 32.093;
-                        b = 0.64403;
-                    } else if (x < 10) {
-                        a = 33.504;
-                        b = 0.60486;
-                    } else if (x < 30) {
-                        a = 36.650;
-                        b = 0.56589;
-                    } else {
-                        a = 44.053;
-                        b = 0.51179;
-                    }
-                    c = 8.3330;
-                    d = 0.72382;
-                } else if (stab == 'E') {
-                    if (x < 0.1) {
-                        a = 24.260;
-                        b = 0.83660;
-                    } else if (x < 0.3) {
-                        a = 23.331;
-                        b = 0.81956;
-                    } else if (x < 1) {
-                        a = 21.628;
-                        b = 0.75660;
-                    } else if (x < 2) {
-                        a = 21.628;
-                        b = 0.63077;
-                    } else if (x < 4) {
-                        a = 22.534;
-                        b = 0.57154;
-                    } else if (x < 10) {
-                        a = 24.703;
-                        b = 0.50527;
-                    } else if (x < 20) {
-                        a = 26.970;
-                        b = 0.46173;
-                    } else if (x < 40) {
-                        a = 35.420;
-                        b = 0.37615;
-                    } else {
-                        a = 47.618;
-                        b = 0.29592;
-                    }
-                    c = 6.2500;
-                    d = 0.54287;
-                } else if (stab == 'F') {
-                    if (x < 0.2) {
-                        a = 15.209;
-                        b = 0.81558;
-                    } else if (x < 0.7) {
-                        a = 14.457;
-                        b = 0.78407;
-                    } else if (x < 1) {
-                        a = 13.953;
-                        b = 0.68465;
-                    } else if (x < 2) {
-                        a = 13.953;
-                        b = 0.63227;
-                    } else if (x < 3) {
-                        a = 14.823;
-                        b = 0.54503;
-                    } else if (x < 7) {
-                        a = 16.187;
-                        b = 0.46490;
-                    } else if (x < 15) {
-                        a = 17.836;
-                        b = 0.41507;
-                    } else if (x < 30) {
-                        a = 22.651;
-                        b = 0.32681;
-                    } else if (x < 60) {
-                        a = 27.074;
-                        b = 0.27436;
-                    } else {
-                        a = 34.219;
-                        b = 0.21716;
-                    }
-                    c = 4.1667;
-                    d = 0.36191;
-                } else {
-                    throw std::invalid_argument("Invalid stability class.");
                 }
+                //a,b not defined for 'A','G' classes above x>0.1, assigned -1 arbitratly in coefs map
+                if ((a < 0) || (b < 0)){
+                    flag=1;
+                }
+            }
                 double Theta = 0.017453293 * (c - d * std::log(x)); // in radians
                 sigma_y_temp = 465.11628 * x * std::tan(Theta); // in meters
     
@@ -620,14 +533,16 @@ private:
                 } else {
                     sigma_z_temp = 5000.0;
                 }
-                }
+                // }
                 sigma_y[i] += sigma_y_temp;
                 sigma_z[i] += sigma_z_temp;
+
             }
             sigma_y[i] /= n_stab;
             sigma_z[i] /= n_stab;
         }
     }
+
 
     const double deg_to_rad_factor = M_PI/180.0;
 
@@ -689,12 +604,12 @@ public:
                    Vector wind_directions, Matrix source_coordinates,
                    Vector emission_strengths, double conversion_factor,
                    double exp_tol, bool skip_low_wind, float low_wind_thresh,
-                   bool unsafe, bool quiet)
+                   bool unsafe, bool quiet, Vector daylight_times, std::vector<double> lowwind_coefs)
 
       : CGaussianPuff(X, Y, Z, nx * ny * nz, sim_dt, puff_dt, puff_duration,
                       n_puffs, hours, wind_speeds, wind_directions,
                       source_coordinates, emission_strengths, conversion_factor,
-                      exp_tol, skip_low_wind, low_wind_thresh, unsafe, quiet),
+                      exp_tol, skip_low_wind, low_wind_thresh, unsafe, quiet, daylight_times, lowwind_coefs),
         nx(nx), ny(ny), nz(nz) {
 
     std::vector<double> gridSpacing = computeGridSpacing();
@@ -884,11 +799,11 @@ public:
                      Matrix source_coordinates, Vector emission_strengths,
                      double conversion_factor, double exp_tol,
                      bool skip_low_wind, float low_wind_thresh, bool unsafe,
-                     bool quiet)
+                     bool quiet, Vector daylight_times, std::vector<double> lowwind_coefs)
       : CGaussianPuff(X, Y, Z, N_sensors, sim_dt, puff_dt, puff_duration,
                       n_puffs, hours, wind_speeds, wind_directions,
                       source_coordinates, emission_strengths, conversion_factor,
-                      exp_tol, skip_low_wind, low_wind_thresh, unsafe, quiet) {
+                      exp_tol, skip_low_wind, low_wind_thresh, unsafe, quiet, daylight_times, lowwind_coefs) {
 
     std::vector<int> inds(N_sensors);
     for (int i = 0; i < N_sensors; i++) {
@@ -914,12 +829,12 @@ PYBIND11_MODULE(CGaussianPuff, m) {
   py::class_<GridGaussianPuff>(m, "GridGaussianPuff")
       .def(py::init<Vector, Vector, Vector, int, int, int, double, double,
                     double, int, VectorXi, Vector, Vector, Matrix, Vector,
-                    double, double, bool, float, bool, bool>())
+                    double, double, bool, float, bool, bool, Vector, std::vector<double>>())
       .def("simulate", &CGaussianPuff::simulate);
 
   py::class_<SensorGaussianPuff>(m, "SensorGaussianPuff")
       .def(py::init<Vector, Vector, Vector, int, double, double, double, int,
                     VectorXi, Vector, Vector, Matrix, Vector, double, double,
-                    bool, double, bool, bool>())
+                    bool, double, bool, bool, Vector, std::vector<double>>())
       .def("simulate", &CGaussianPuff::simulate);
 }

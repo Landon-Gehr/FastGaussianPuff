@@ -1,3 +1,6 @@
+#updateing the module: conda env update -f environment.yml && conda activate gp && rm -rf build/ && pip install .
+
+
 import datetime
 from math import floor
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -17,6 +20,7 @@ class GaussianPuff:
         simulation_start,
         simulation_end,
         time_zone,
+        daylight_times,
         source_coordinates,
         emission_rates,
         wind_speeds,
@@ -35,6 +39,7 @@ class GaussianPuff:
         conversion_factor=1e6 * 1.524,
         unsafe=False,
         quiet=True,
+        lowwind_coefs=[],
     ):
         """
         Inputs:
@@ -120,10 +125,26 @@ class GaussianPuff:
         except ZoneInfoNotFoundError:
             raise ValueError(f"Invalid timezone: {time_zone}")
 
+
+
         utc_total_time_series = pd.date_range(
             start=self.sim_start, end=self.sim_end, freq=f"{puff_dt}s", tz="UTC"
         )
         local_ts = utc_total_time_series.tz_convert(time_zone)
+
+        # iterate along side daylight_times here to create vector of booleans for is day or night
+        def is_day(date):
+            day = daylight_times[date.day-1][date.month-1]
+            set_hour = int((day.split("-")[1]).split(":")[0])
+            set_min = int((day.split("-")[1]).split(":")[1])
+            rise_hour = int((day.split("-")[0]).split(":")[0])
+            rise_min = int((day.split("-")[0]).split(":")[1])
+            h = int(date.hour)
+            m = int(date.minute)
+            return (h >= rise_hour and h <= set_hour) and not ((h==rise_hour and m<rise_min) or (h==set_hour and m>set_min))
+
+        daylist = np.vectorize(is_day)(local_ts)
+
         hours_arr = local_ts.hour.values
         n_puffs = len(hours_arr)
 
@@ -195,6 +216,7 @@ class GaussianPuff:
             spatial_grid = (self.X, self.Y, self.Z, self.nx, self.ny, self.nz)
             dts = (sim_dt, puff_dt, puff_duration)
             wind = (self.wind_speeds_sim, self.wind_directions_sim)
+
             self.GPC = fGP.GridGaussianPuff(
                 *spatial_grid,
                 *dts,
@@ -209,6 +231,8 @@ class GaussianPuff:
                 low_wind_cutoff,
                 unsafe,
                 quiet,
+                daylist,
+                lowwind_coefs
             )
         else:
             self.using_sensors = True
@@ -223,6 +247,7 @@ class GaussianPuff:
             spatial_grid = (self.X, self.Y, self.Z, self.N_points)
             dts = (sim_dt, puff_dt, puff_duration)
             wind = (self.wind_speeds_sim, self.wind_directions_sim)
+
             self.GPC = fGP.SensorGaussianPuff(
                 *spatial_grid,
                 *dts,
@@ -237,6 +262,8 @@ class GaussianPuff:
                 low_wind_cutoff,
                 unsafe,
                 quiet,
+                daylist,
+                lowwind_coefs
             )
 
         # initialize the final simulated concentration array
